@@ -76,7 +76,7 @@ function loadModels() {
 
   const scenePosition = new Vector3(-1, 0, 0);
   loader.load(
-    "/src/models/poly.glb",
+    "./src/models/poly.glb",
     (gltf) => onLoad(gltf, scenePosition),
     onProgress
   );
