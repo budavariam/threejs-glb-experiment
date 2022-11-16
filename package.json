@@ -8,7 +8,12 @@
     "build": "parcel build index.html"
   },
   "staticFiles": {
-    "staticPath": ["src/models-poly.glb"]
+    "staticPath": [
+      {
+        "staticOutDir": "/src/models",
+        "staticPath": "/src/models"
+      }
+    ]
   },
   "dependencies": {
     "three": "0.103.0",
