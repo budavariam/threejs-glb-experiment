@@ -7,7 +7,12 @@ import {
   HemisphereLight,
   Vector3,
   Clock,
-  AnimationMixer
+  AnimationMixer,
+  SphereGeometry,
+  MeshStandardMaterial,
+  Mesh,
+  BoxGeometry,
+  Group,
 } from "three";
 import OrbitControls from "three-orbitcontrols";
 import GLTFLoader from "three-gltf-loader";
@@ -20,6 +25,8 @@ let controls;
 
 const mixers = [];
 const clock = new Clock();
+const snowflakes = [];
+const snowOnGround = [];
 
 function init() {
   container = document.querySelector("#scene-container");
@@ -38,6 +45,8 @@ function init() {
     update();
     render();
   });
+
+  createSnowfall(-1.8);
 }
 
 function createCamera() {
@@ -55,6 +64,21 @@ function createLights() {
 
   const hemisphereLight = new HemisphereLight(0xddeeff, 0x202020, 5);
   scene.add(mainLight, hemisphereLight);
+}
+
+function createBox(
+  width = 1,
+  height = 1,
+  depth = 1,
+  position = new Vector3(0, 0, 0)
+) {
+  const geometry = new BoxGeometry(width, height, depth);
+  const material = new MeshStandardMaterial({ color: 0x8b4513 });
+  const box = new Mesh(geometry, material);
+
+  box.position.copy(position);
+  scene.add(box);
+  return box;
 }
 
 function loadModels() {
@@ -80,6 +104,8 @@ function loadModels() {
     (gltf) => onLoad(gltf, scenePosition),
     onProgress
   );
+
+  //createBox(8, 4, 5, new Vector3(-1.5, -0.1, -2.8));
 }
 
 function createRenderer() {
@@ -97,9 +123,67 @@ function createControls() {
   controls = new OrbitControls(camera, container);
 }
 
+function createSnowfall(groundHeight = 0) {
+  const snowflakeCount = 100;
+
+  for (let i = 0; i < snowflakeCount; i++) {
+    const geometry = new SphereGeometry(0.05, 8, 8);
+    const material = new MeshStandardMaterial({ color: 0xffffff });
+    const snowflake = new Mesh(geometry, material);
+
+    snowflake.position.set(
+      Math.random() * 20 - 10,
+      Math.random() * 10 + 5,
+      Math.random() * 20 - 10
+    );
+
+    scene.add(snowflake);
+    snowflakes.push({ mesh: snowflake, groundHeight });
+  }
+}
+
+function updateSnowfall() {
+  snowflakes.forEach(({ mesh, groundHeight }, index) => {
+    mesh.position.y -= Math.random() * 0.1 + 0.05;
+
+    if (mesh.position.y <= groundHeight) {
+      const material = new MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 1,
+      });
+      const snowflakeOnGround = new Mesh(mesh.geometry.clone(), material);
+      snowflakeOnGround.position.set(
+        mesh.position.x,
+        groundHeight,
+        mesh.position.z
+      );
+
+      scene.add(snowflakeOnGround);
+      snowOnGround.push(snowflakeOnGround);
+
+      // Reset snowflake to start falling again
+      mesh.position.set(
+        Math.random() * 20 - 10,
+        Math.random() * 10 + 5,
+        Math.random() * 20 - 10
+      );
+    }
+  });
+
+  snowOnGround.forEach((flake, index) => {
+    flake.material.opacity -= 0.005;
+    if (flake.material.opacity <= 0) {
+      scene.remove(flake);
+      snowOnGround.splice(index, 1);
+    }
+  });
+}
+
 function update() {
   const delta = clock.getDelta();
   mixers.forEach((mixer) => mixer.update(delta));
+  updateSnowfall();
 }
 
 function render() {
